@@ -285,7 +285,7 @@ function renderDrawing() {
 // ---------------- UI ----------------
 // Each model: file, view presets (three.js coords, inches), parts left out of the "Overall" centring, x-ray density scale.
 const MODELS = {
-  viper: { file: 'viper.glb', mu: 2.2, sheet: .008, fit: [.82, .95], explodeDir: [-.9, .38, .45], exclude: () => false,
+  viper: { file: 'viper.glb', mu: 2.2, sheet: .008, fit: [.635, .95], fitNarrow: .86, lift: .075, explodeDir: [-.9, .38, .45], exclude: () => false,
     views: {
       overall: { label:'Overall', t:[0,1.1,-3.2], p:[-8.2,4.4,1.6] },
       dial:    { label:'Dial', t:[-0.87,1.37,-3.93], p:[-2.45,2.05,-3.55] },
@@ -326,7 +326,11 @@ function overallFrame() {
   const exDir = explode > 0 && MODELS[model].explodeDir;
   const dir = exDir ? new THREE.Vector3(...exDir).normalize() : new THREE.Vector3(...VIEWS.overall.p).sub(new THREE.Vector3(...VIEWS.overall.t)).normalize();
   const vf = THREE.MathUtils.degToRad(camera.fov) / 2, hf = Math.atan(Math.tan(vf) * camera.aspect);
-  const dist = r / Math.sin(Math.min(vf, hf)) * MODELS[model].fit[explode > 0 ? 1 : 0];
+  const wide = camera.aspect >= 1.3, M = MODELS[model];
+  const dist = r / Math.sin(Math.min(vf, hf)) * (explode > 0 ? M.fit[1] : wide || !M.fitNarrow ? M.fit[0] : M.fitNarrow);
+  // lift: raise the model by this fraction of the view height (keeps it clear of the control bar)
+  const lift = explode > 0 || !wide ? 0 : (M.lift || 0);
+  if (lift) { const up = new THREE.Vector3(0, 1, 0).addScaledVector(dir, -dir.y).normalize(); c.addScaledVector(up, -lift * 2 * dist * Math.tan(vf)); }
   return [c, c.clone().addScaledVector(dir, dist)];
 }
 const setMode = m => {
